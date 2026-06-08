@@ -1,0 +1,3 @@
+{
+  "extends": "@blueprint/config/tsconfig.base.json"
+}

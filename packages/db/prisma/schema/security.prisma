@@ -1,0 +1,51 @@
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  ownerUserId String
+  ownerUser   User      @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  secretHash  String    @unique
+  scopesJson  Json
+  revokedAt   DateTime?
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([ownerUserId])
+  @@map("api_key")
+}
+
+model IdempotencyRequest {
+  id           String   @id @default(cuid())
+  actorId      String
+  method       String
+  keyHash      String
+  requestHash  String
+  responseJson Json?
+  status       String
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@unique([actorId, method, keyHash])
+  @@index([expiresAt])
+  @@map("idempotency_request")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  requestId    String
+  actorType    String
+  actorId      String?
+  authMethod   String
+  action       String
+  resourceType String?
+  resourceId   String?
+  status       String
+  errorCode    String?
+  diffJson     Json?
+  metadataJson Json?
+
+  @@index([timestamp])
+  @@index([requestId])
+  @@map("audit_log")
+}

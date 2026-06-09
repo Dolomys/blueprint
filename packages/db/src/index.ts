@@ -1,11 +1,10 @@
-import { env } from "@blueprint/env/server";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../prisma/generated/client";
 
 export function createPrismaClient() {
   const adapter = new PrismaPg({
-    connectionString: env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL!,
   });
   return new PrismaClient({ adapter });
 }

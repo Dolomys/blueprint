@@ -10,13 +10,13 @@ export const Route = createFileRoute("/_auth/dashboard")({
 function RouteComponent() {
   const { session } = Route.useRouteContext();
 
-  const privateData = useQuery(orpc.privateData.queryOptions());
+  const me = useQuery(orpc.user.me.queryOptions());
 
   return (
     <div>
       <h1>Dashboard</h1>
       <p>Welcome {session.data?.user.name}</p>
-      <p>API: {privateData.data?.message}</p>
+      <p>API: signed in as {me.data?.email}</p>
     </div>
   );
 }

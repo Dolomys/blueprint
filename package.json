@@ -38,7 +38,6 @@
     "check": "oxlint && oxfmt --write"
   },
   "dependencies": {
-    "@blueprint/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },

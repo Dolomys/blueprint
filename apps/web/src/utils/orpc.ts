@@ -1,10 +1,11 @@
-import type { AppRouterClient } from "@blueprint/api/routers/index";
-import { env } from "@blueprint/env/web";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
+import type { AppRouterClient } from "server/types";
 import { toast } from "sonner";
+
+import { env } from "@/lib/env";
 
 export function createQueryClient() {
   return new QueryClient({

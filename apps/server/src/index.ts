@@ -1,7 +1,6 @@
-import { createContext } from "@blueprint/api/context";
-import { appRouter } from "@blueprint/api/routers/index";
-import { auth } from "@blueprint/auth";
-import { env } from "@blueprint/env/server";
+import { auth } from "./lib/auth";
+import { createContext } from "./lib/context";
+import { env } from "./lib/env";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
@@ -12,6 +11,8 @@ import { createAuthMiddleware, type BetterAuthInstance } from "evlog/better-auth
 import { evlog, type EvlogVariables } from "evlog/hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+
+import { appRouter } from "./router";
 
 initLogger({
   env: { service: "blueprint-server" },

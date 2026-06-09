@@ -1,4 +1,4 @@
-import { env } from "@blueprint/env/web";
+import { env } from "@/lib/env";
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({

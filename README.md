@@ -1,105 +1,153 @@
 # blueprint
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Hono, ORPC, and more.
+MVP starter — React + Hono + oRPC, full-stack type safety, ready to ship.
 
-## Features
+## Stack
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **Bun** - Runtime environment
-- **Prisma** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Turborepo** - Optimized monorepo build system
+| Concern | Tool |
+|---|---|
+| Runtime | Bun |
+| Monorepo | Turborepo |
+| Server | Hono + oRPC |
+| Auth | better-auth |
+| ORM | Prisma (multi-file schema) |
+| Database | PostgreSQL |
+| Frontend | React 19 + Vite + TanStack Router |
+| Data fetching | TanStack Query |
+| UI | shadcn/ui + Tailwind CSS v4 |
+| Logging | evlog |
+| Env validation | t3-oss/env-core |
+| Lint / Format | oxlint + oxfmt |
 
-## Getting Started
+## Structure
 
-First, install the dependencies:
+```
+apps/
+  web/        React + Vite + TanStack Router
+              └── src/lib/env.ts        env validation
+              └── src/lib/auth-client.ts
+              └── src/components/ui/    shadcn components (local)
+              └── src/utils/orpc.ts     typed RPC client + QueryClient
+
+  server/     Hono + oRPC
+              └── src/lib/auth.ts       better-auth config
+              └── src/lib/context.ts    oRPC context (session)
+              └── src/lib/orpc.ts       publicProcedure / protectedProcedure / adminProcedure
+              └── src/lib/env.ts        env validation
+              └── src/lib/errors.ts     notFound() / forbidden() / badRequest()
+              └── src/lib/pagination.ts paginateQuerySchema + helpers
+              └── src/lib/error-envelope.ts  structured error responses
+              └── src/router.ts         root router → exports AppRouterClient type
+              └── src/features/user/    example feature (3 files)
+
+packages/
+  db/         Prisma client + multi-file schema
+  config/     tsconfig base
+```
+
+## Getting started
 
 ```bash
 bun install
 ```
 
-## Database Setup
+Copy the example env files:
 
-This project uses PostgreSQL with Prisma.
+```bash
+cp apps/server/.env.example apps/server/.env
+cp apps/web/.env.example apps/web/.env
+```
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
+Set up the database:
 
 ```bash
 bun run db:push
 ```
 
-Then, run the development server:
+Start everything:
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+- Web: http://localhost:5173
+- Server: http://localhost:3000
+- API docs (OpenAPI): http://localhost:3000/api-reference
 
-## UI Customization
+## Adding a feature
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+Each feature lives in `apps/server/src/features/<name>/` with exactly 3 files:
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+```
+features/post/
+  post.schema.ts   Zod schemas + inferred types
+  post.service.ts  Prisma queries, data transforms
+  post.router.ts   oRPC handlers, auth policy inline
+```
 
-### Add more shared components
+Wire it into `apps/server/src/router.ts`:
 
-Run this from the project root to add more primitives to the shared UI package:
+```typescript
+import { postRouter } from "./features/post/post.router";
+
+export const appRouter = {
+  healthCheck: ...,
+  user: userRouter,
+  post: postRouter,   // ← add here
+};
+```
+
+The web picks up the new endpoints automatically via the shared `AppRouterClient` type.
+
+## Adding UI components
+
+Run shadcn from the web app:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+cd apps/web && npx shadcn@latest add dialog
 ```
 
-Import shared components like this:
+Components land in `apps/web/src/components/ui/`.
 
-```tsx
-import { Button } from "@blueprint/ui/components/button";
+## Auth
+
+better-auth handles sign-up, sign-in, and session management. The `admin` plugin provides role-based access:
+
+- Default role: `"user"`
+- Admin role: `"admin"`
+
+Use procedures from `apps/server/src/lib/orpc.ts`:
+
+```typescript
+import { protectedProcedure, adminProcedure } from "../../lib/orpc";
+
+export const myRouter = {
+  myHandler: protectedProcedure.handler(...),  // requires session
+  adminOnly: adminProcedure.handler(...),       // requires role === "admin"
+};
 ```
 
-### Add app-specific blocks
+## Shared types (web ↔ server)
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+The web imports the router type directly from the server package — no separate contracts package:
 
-## Git Hooks and Formatting
-
-- Run checks: `bun run check`
-
-## Project Structure
-
-```
-blueprint/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   └── server/      # Backend API (Hono, ORPC)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+```typescript
+import type { AppRouterClient } from "server/types";
 ```
 
-## Available Scripts
+oRPC infers all input/output types automatically. You rarely need to import types explicitly — they flow through `orpc.useQuery()` and `orpc.useMutation()`.
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Oxlint and Oxfmt
+## Scripts
+
+| Command | Action |
+|---|---|
+| `bun run dev` | Start web + server |
+| `bun run dev:web` | Start web only |
+| `bun run dev:server` | Start server only |
+| `bun run build` | Build all apps |
+| `bun run check-types` | TypeScript check across all packages |
+| `bun run check` | oxlint + oxfmt |
+| `bun run db:push` | Push schema to database |
+| `bun run db:generate` | Regenerate Prisma client |
+| `bun run db:migrate` | Run migrations |
+| `bun run db:studio` | Open Prisma Studio |
